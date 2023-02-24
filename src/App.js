@@ -1,12 +1,9 @@
-import logo from '../assets/logo.svg';
+import Products from './components/Products';
 
 const App = () => {
+  
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-      </header>
-    </div>
+    <Products />
   );
 }
 
