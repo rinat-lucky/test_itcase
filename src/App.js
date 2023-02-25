@@ -1,10 +1,8 @@
-import Products from './components/Products';
+import { RouterProvider } from 'react-router-dom';
+import router from './router';
 
-const App = () => {
-  
-  return (
-    <Products />
-  );
-}
+const App = () => (
+  <RouterProvider router={router} />
+);
 
 export default App;
