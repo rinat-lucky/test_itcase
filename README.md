@@ -1,6 +1,7 @@
 # Тестовое задание ITCase
 
 Ссылка на подробное задание: https://github.com/ITCase/react-test-task
+Cсылка на развернутое приложение: https://rinat-lucky.github.io/
 
 ## Задача:
 
