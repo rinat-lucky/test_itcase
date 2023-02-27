@@ -10,7 +10,7 @@ const router = createBrowserRouter([
     errorElement: <NotFoundPage />,
   },
   {
-    path: "/:productId",
+    path: "/:productId/:colorId",
     element: <ProductPage />,
   },
 ]);
