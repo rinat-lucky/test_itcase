@@ -5,6 +5,9 @@
   "dependencies": {
     "@reduxjs/toolkit": "^1.9.3",
     "bootstrap": "^5.2.3",
+    "lodash.uniqueid": "^4.0.1",
+    "mobx": "^6.10.0",
+    "mobx-react-lite": "^4.0.4",
     "react": "^18.2.0",
     "react-bootstrap": "^2.7.2",
     "react-dom": "^18.2.0",

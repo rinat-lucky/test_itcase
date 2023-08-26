@@ -1,70 +1,93 @@
-import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation, Link } from 'react-router-dom';
 import {
   Alert,
+  Badge,
   Button,
   Col,
   Container,
   Row,
+  Stack,
 } from 'react-bootstrap';
+import { observer } from "mobx-react-lite";
 import Spinner from './Spinner';
 import { getProduct, getSizes } from '../services/api';
+import store from "../store/CartStore";
 
-const ProductPage = () => {
-  const navigate = useNavigate();
+const ProductPage = observer(() => {
   const { pathname } = useLocation();
   const ids = pathname.split('/').map((id) => Number(id));
   const [ , selectedProductId, selectedColorId ] = ids;
-  const [product, setProduct] = useState(null);
+  const [product, setProduct] = useState({});
   const [currentColor, setCurrentColor] = useState({});
-  const [currentImage, setCurrentImage] = useState('');
+  const [currentImageSrc, setCurrentImageSrc] = useState('');
   const [currentSize, setCurrentSize] = useState('');
-  const [loading, setLoading] = useState('pending');
+  const [loadingStatus, setLoadingStatus] = useState('pending');
   const [sizes, setSizes] = useState([]);
 
-  useEffect(() => {
-    const fetchProduct = () => {
-      getProduct(selectedProductId)
-        .then((data) => {
-          setProduct(data);
-          const color = data.colors.find((c) => c.id === selectedColorId);
-          setCurrentColor(color);
-          setCurrentImage(color.images[0]);
-          setLoading('success');
-        })
-        .catch((err) => {
-          console.error(err);
-          if (err.message === 'Product not found') {
-            setLoading('notFoundError');
-          } else {
-            setLoading('unknownError');
-          }
-        });
-    };
-    const fetchSizes = () => getSizes()
-      .then((data) => setSizes(data));
+  const setSize = useCallback((size) => setCurrentSize(size), [])
+  const setImageSrc = useCallback((src) => setCurrentImageSrc(src), [])
 
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const data = await getProduct(selectedProductId)
+        const color = data.colors.find((c) => c.id === selectedColorId);
+        setProduct(data);
+        setCurrentColor(color);
+        setCurrentImageSrc(color.images[0]);
+        setLoadingStatus('success');
+      } catch (error) {
+        if (error.message === 'Product not found') {
+          setLoadingStatus('notFound');
+        } else {
+          setLoadingStatus('unknownError');
+        }
+      }
+    };
+
+    const fetchSizes = async () => {
+      try {
+        const data = await getSizes()
+        setSizes(data)
+      } catch (error) {
+        console.err(error)
+      }
+    }
+    
     fetchProduct();
     fetchSizes();
   }, [selectedProductId, selectedColorId]);
 
-  const handleClick = (color) => {
+  const handleClickOnColor = useCallback((color) => {
     setCurrentColor(color);
-    setCurrentImage(color.images[0]);
+    setCurrentImageSrc(color.images[0]);
     setCurrentSize('');
-  };
+  }, []);
 
-  const renderContent = () => (
-    <Row xs={1} sm={2} className='mt-3'>
+  const handleClickAddToCart = useCallback(() => {
+    const newProduct = {
+      color: currentColor.name,
+      image: currentImageSrc,
+      name: product.name,
+      price: currentColor.price,
+      size: `${currentSize.label} / ${currentSize.number}`,
+    }
+    
+    store.addProduct(newProduct)
+  }, [currentImageSrc, currentColor.name, currentColor.price, product.name, currentSize.label, currentSize.number])
+
+  const mainContent = useMemo(() => (
+    <Row xs={1} sm={2} className='mt-3 py-4'>
       <Col>
         <h1>{product.name}</h1>
 
         <div className='mt-3'>Выбрать цвет:</div>
-        {product.colors.map((color) => (
+        {product.colors?.map((color) => (
           <Button
             key={color.id}
             className='m-2 ms-0'
-            onClick={() => handleClick(color)}
+            onClick={() => handleClickOnColor(color)}
             active={color.id === currentColor.id}
           >
             {color.name}
@@ -72,18 +95,28 @@ const ProductPage = () => {
         ))}
 
         <div className='mt-3'>Выбрать размер:</div>
-        {sizes.map((s) => (
+        {sizes.map((size) => (
           <Button
-            key={s.id}
+            key={size.id}
             className='m-2 ms-0'
-            onClick={() => setCurrentSize(s)}
-            active={s === currentSize}
-            disabled={!currentColor.sizes.includes(s.id)}
+            onClick={() => setSize(size)}
+            active={size === currentSize}
+            disabled={!currentColor.sizes?.includes(size.id)}
           >
-            {s.label} / {s.number}
+            {size.label} / {size.number}
           </Button>
         ))}
-        {currentColor.sizes.length ? null : (<Alert variant='danger' className='w-50'>Нет в продаже</Alert>)}
+          
+        <Button
+          variant='success'
+          className='d-block mt-3'
+          onClick={handleClickAddToCart}
+          disabled={!Boolean(currentSize)}
+        >
+          Добавить в корзину
+        </Button>
+
+        {Boolean(!currentColor.sizes?.length) && (<Alert variant='danger' className='mt-3 w-50'>Нет в продаже</Alert>)}
       </Col>
 
       <Col>
@@ -92,42 +125,47 @@ const ProductPage = () => {
         <div>Размер: {currentSize ? `${currentSize.label} / ${currentSize.number}` : 'не выбран'}</div>
         <div>Описание: {currentColor.description}</div>
         <div>Изображения:</div>
-        {currentColor.images.map((img, i) => (
+        {currentColor.images?.map((img, i) => (
           <Button
             key={img}
             className='m-2 ms-0'
-            onClick={() => setCurrentImage(img)}
-            active={img === currentImage}
+            onClick={() => setImageSrc(img)}
+            active={img === currentImageSrc}
           >
-            {i + 1}
+            {`Фото ${i + 1}`}
           </Button>
         ))}
-        <img className='d-block w-50' src={currentImage} alt={`${product.name} ${currentColor.name}`} />
+        <img className='d-block w-50' src={currentImageSrc} alt={`${product.name} ${currentColor.name}`} />
       </Col>
     </Row>
-  );
+  ), [product, currentColor, currentImageSrc, currentSize, handleClickOnColor, sizes, setImageSrc, setSize]);
 
-  const renderMainContent = () => {
-    switch(loading) {
-      case 'pending':
-        return (<Spinner />);
-      case 'success':
-        return renderContent();
-      case 'notFoundError':
-        return (<Alert variant='danger' className='w-50 mt-3'>Товар не найден</Alert>);
-      case 'unknownError':
-        return (<Alert variant='danger' className='w-50 mt-3'>Произошла неизвестная ошибка. Попробуйте открыть страницу позже</Alert>);
-      default:
-        throw new Error(`Unknown stage of loading: ${loading}`);
+  const content = useMemo(() => {
+    return {
+      'pending': <Spinner />,
+      'success': mainContent,
+      'notFound': <Alert variant='danger' className='w-50 mt-3'>Товар не найден</Alert>,
+      'unknownError': <Alert variant='danger' className='w-50 mt-3'>Произошла неизвестная ошибка. Попробуйте открыть страницу позже</Alert>,
     }
-  };
+  }, [mainContent]);
 
   return (
-    <Container className='my-3'>
-      <Button onClick={() => navigate('/')} variant='success'>Вернуться в каталог</Button>
-      {renderMainContent()}
+    <Container className='my-4'>
+      <Stack direction="horizontal" gap={3}>
+        <Button variant='success'>
+          <Link to={'/'} className='text-decoration-none text-light'>К списку товаров</Link>
+        </Button>
+        <Button variant='warning'>
+          <Link to={'/cart'} className='text-decoration-none text-dark'>
+            Перейти в корзину
+            {Boolean(store.productsCount) && <Badge bg="danger" className='ms-2'>{store.productsCount}</Badge>}
+          </Link>
+        </Button>
+      </Stack>
+    
+      {content[loadingStatus]}
     </Container>
   );
-};
+});
 
 export default ProductPage;

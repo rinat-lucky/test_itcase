@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Alert,
@@ -12,42 +12,46 @@ import {
 } from 'react-bootstrap';
 import { getProducts } from '../services/api';
 
-const Products = () => {
+const ProductsListPage = () => {
   const [products, setProducts] = useState([]);
   const [key, setKey] = useState(null);
 
-  useEffect(() => {
-    const fetchData = () => getProducts()
-      .then((data) => setProducts(data));
+  const setActiveKey = useCallback((key) => setKey(key), [])
 
-    fetchData();
+  useEffect(() => {
+    const fetchProductsList = async () => {
+      const data = await getProducts()
+      setProducts(data)
+    };
+
+    fetchProductsList();
   }, []);
 
   return (
     <Container>
       <Tabs
         activeKey={key}
-        onSelect={(k) => setKey(k)}
+        onSelect={setActiveKey}
         className='my-3'
         variant='pills fw-bold'
       >
-        {products.map((p) => (
+        {products.map((product) => (
           <Tab
-            eventKey={p.name}
-            title={p.name}
-            key={p.id}
+            eventKey={product.name}
+            title={product.name}
+            key={product.id}
           >
             <Row xs={2} md={3} lg={4} xl={5} className='g-3'>
-              {p.colors.map((color) => (
+              {product.colors.map((color) => (
                 <Col key={color.id}>
                   <Card>
                     <Card.Img variant='top' src={color.images[0]} />
                     <Card.Body>
-                      <Card.Title>{p.name}</Card.Title>
+                      <Card.Title>{product.name}</Card.Title>
                       <Card.Text>{`Цвет: ${color.name}`}</Card.Text>
                       <div className='d-grid gap-2'>
                         <Button>
-                          <Link to={`/${p.id}/${color.id}`} className='text-decoration-none text-light'>Подробнее</Link>
+                          <Link to={`/${product.id}/${color.id}`} className='text-decoration-none text-light'>Подробнее</Link>
                         </Button>
                       </div>
                     </Card.Body>
@@ -58,9 +62,10 @@ const Products = () => {
           </Tab>
         ))}
       </Tabs>
-      {key ? null : (<Alert variant='success' className='w-50'>Выберите категорию товаров</Alert>)}
+
+      {Boolean(!key) && (<Alert variant='success' className='w-50'>Выберите категорию товаров</Alert>)}
     </Container>
   );
 };
 
-export default Products;
+export default ProductsListPage;
