@@ -1,6 +1,6 @@
 # Тестовое задание ITCase
 
-Ссылка на подробное задание: https://github.com/ITCase/react-test-task/tree/middle
+Ссылка на подробное задание: https://github.com/ITCase/react-test-task/tree/middle <br>
 Cсылка на развернутое приложение: https://rinat-lucky.github.io/
 
 ## Задача:
